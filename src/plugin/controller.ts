@@ -1,26 +1,41 @@
 figma.showUI(__html__);
 
-figma.ui.onmessage = (msg) => {
-  if (msg.type === 'create-rectangles') {
-    const nodes = [];
+figma.ui.onmessage = async (msg) => {
+  if (msg.type === 'find-and-replace') {
+    const findStr = msg.findVal;
+    const replaceStr = msg.replaceVal;
 
-    for (let i = 0; i < msg.count; i++) {
-      const rect = figma.createRectangle();
-      rect.x = i * 150;
-      rect.fills = [{ type: 'SOLID', color: { r: 1, g: 0.5, b: 0 } }];
-      figma.currentPage.appendChild(rect);
-      nodes.push(rect);
+    const selection = figma.currentPage.selection;
+  
+    if (selection.length === 0) {
+      figma.closePlugin('Please select at least one layer');
+      return;
     }
 
-    figma.currentPage.selection = nodes;
-    figma.viewport.scrollAndZoomIntoView(nodes);
+    for (const node of selection) {
+      if (node.type === 'TEXT') {
+        // For text layers, replace text content
+        try {
+          await figma.loadFontAsync({ family: "Inter", style: "Medium" });
+        } catch(err) {
+          console.error(`Error: ${err}`);
+        }
+        
+        node.characters = node.characters.replace(findStr, replaceStr);        
+      } else {
+        // For other layers, replace the name
+        node.name = node.name.replace(findStr, replaceStr);
+      }
+    }
 
-    // This is how figma responds back to the ui
     figma.ui.postMessage({
-      type: 'create-rectangles',
-      message: `Created ${msg.count} Rectangles`,
+      type: 'find-and-replace',
+      message: `Found and replaced names from ${selection.length} layers`,
     });
+    figma.closePlugin('Layer names replaced');
   }
-
-  figma.closePlugin();
+  else{
+    figma.closePlugin();
+  }
+  
 };

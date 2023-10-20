@@ -1,29 +1,24 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import logo from '../assets/logo.svg';
 import '../styles/ui.css';
 
 function App() {
-  const textbox = React.useRef<HTMLInputElement>(undefined);
+  const [findVal, setFindVal] = useState("");
+  const [replaceVal, setReplaceVal] = useState("");
 
-  const countRef = React.useCallback((element: HTMLInputElement) => {
-    if (element) element.value = '5';
-    textbox.current = element;
-  }, []);
-
-  const onCreate = () => {
-    const count = parseInt(textbox.current.value, 10);
-    parent.postMessage({ pluginMessage: { type: 'create-rectangles', count } }, '*');
+  const onReplace = () => {
+    parent.postMessage({ pluginMessage: { type: 'find-and-replace', findVal, replaceVal } }, '*');
   };
 
   const onCancel = () => {
     parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*');
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     // This is how we read messages sent from the plugin controller
     window.onmessage = (event) => {
       const { type, message } = event.data.pluginMessage;
-      if (type === 'create-rectangles') {
+      if (type === 'find-and-replace') {
         console.log(`Figma Says: ${message}`);
       }
     };
@@ -32,12 +27,17 @@ function App() {
   return (
     <div>
       <img src={logo} />
-      <h2>Rectangle Creator</h2>
-      <p>
-        Count: <input ref={countRef} />
-      </p>
-      <button id="create" onClick={onCreate}>
-        Create
+      <h2>Layer Renamer</h2>
+      <label>
+        Find
+        <input type="text" value={findVal} onChange={(e) => setFindVal(e.target.value)}/>
+      </label>
+      <label>
+        Replace
+        <input type="text" value={replaceVal} onChange={(e) => setReplaceVal(e.target.value)} />
+      </label>
+      <button id="find-and-replace" onClick={onReplace}>
+        Replace
       </button>
       <button onClick={onCancel}>Cancel</button>
     </div>
