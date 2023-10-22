@@ -1,5 +1,7 @@
 figma.showUI(__html__);
 
+figma.ui.resize(300, 400);
+
 figma.ui.onmessage = (msg) => {
   if (msg.type === 'find-and-replace') {
     const findStr = msg.findVal;
@@ -25,7 +27,7 @@ figma.ui.onmessage = (msg) => {
     const findNodeHandling = (node) => {
       if (caseSensitive){
         if(exactMatch){
-          return node.name === findStr
+          return node.name === findStr;
         }
         return node.name.includes(findStr);
       }
