@@ -1,38 +1,65 @@
 figma.showUI(__html__);
 
-figma.ui.onmessage = async (msg) => {
+figma.ui.onmessage = (msg) => {
   if (msg.type === 'find-and-replace') {
     const findStr = msg.findVal;
     const replaceStr = msg.replaceVal;
+    const caseSensitive = msg.caseSensitive;
+    const exactMatch = msg.exactMatch;
+    const searchInOption = msg.searchInOption;
 
-    const selection = figma.currentPage.selection;
-  
-    if (selection.length === 0) {
-      figma.closePlugin('Please select at least one layer');
-      return;
-    }
+    let nodeArr: readonly SceneNode[];
 
-    for (const node of selection) {
-      if (node.type === 'TEXT') {
-        // For text layers, replace text content
-        try {
-          await figma.loadFontAsync({ family: "Inter", style: "Medium" });
-        } catch(err) {
-          console.error(`Error: ${err}`);
+    const replaceHandling = (nodeArr) => {
+      for (const node of nodeArr) {
+        if(caseSensitive){
+          node.name = node.name.replace(findStr, replaceStr);
         }
-        
-        node.characters = node.characters.replace(findStr, replaceStr);        
-      } else {
-        // For other layers, replace the name
-        node.name = node.name.replace(findStr, replaceStr);
+        else{
+          var regEx = new RegExp(findStr, "ig");
+          node.name = node.name.replace(regEx, replaceStr);
+        }
       }
     }
 
+    const findNodeHandling = (node) => {
+      if (caseSensitive){
+        if(exactMatch){
+          return node.name === findStr
+        }
+        return node.name.includes(findStr);
+      }
+      if(exactMatch){
+        return node.name.toLowerCase() === findStr.toLowerCase();
+      }
+      return node.name.toLowerCase().includes(findStr.toLowerCase());
+    }
+
+    if(searchInOption === "Selection"){
+      nodeArr = figma.currentPage.selection;
+      if (nodeArr.length === 0) {
+        figma.closePlugin('Please select at least one layer');
+        return;
+      }
+      nodeArr = nodeArr.filter((node) => {
+        return findNodeHandling(node);
+      });
+    }
+    else {
+      nodeArr = figma.currentPage.findAll((node) => {
+        if(node.type !== "TEXT"){
+          return findNodeHandling(node);
+        }
+      });
+    }
+
+    replaceHandling(nodeArr);
+
     figma.ui.postMessage({
       type: 'find-and-replace',
-      message: `Found and replaced names from ${selection.length} layers`,
+      message: `Found and replaced names from ${nodeArr.length} layers`,
     });
-    figma.closePlugin('Layer names replaced');
+    figma.closePlugin(`Found and replaced names from ${nodeArr.length} layers`);
   }
   else{
     figma.closePlugin();
